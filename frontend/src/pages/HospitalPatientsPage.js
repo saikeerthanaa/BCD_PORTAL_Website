@@ -1,9 +1,12 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 
 const HospitalPatientsPage = () => {
   const navigate = useNavigate();
+  const [sessions, setSessions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -12,12 +15,87 @@ const HospitalPatientsPage = () => {
     navigate('/');
   };
 
-  const patients = [
-    { id: 'PT-1001', name: 'Anita Sharma', age: 46, lastVisit: 'May 18, 2026', status: 'Pending Review' },
-    { id: 'PT-1002', name: 'Meera Das', age: 52, lastVisit: 'May 17, 2026', status: 'Completed' },
-    { id: 'PT-1003', name: 'Suman Rao', age: 39, lastVisit: 'May 16, 2026', status: 'In Progress' },
-    { id: 'PT-1004', name: 'Latha Menon', age: 58, lastVisit: 'May 14, 2026', status: 'Pending Review' }
-  ];
+  const convertGcsToHttp = (gcsUrl) => {
+    if (!gcsUrl) return null;
+    if (gcsUrl.startsWith('gs://')) {
+      return `https://storage.googleapis.com/${gcsUrl.replace('gs://', '')}`;
+    }
+    return gcsUrl;
+  };
+
+  const extractPatientId = (responses = []) => {
+    const sortedResponses = [...responses].sort((left, right) => {
+      const leftTime = new Date(left.created_at || 0).getTime();
+      const rightTime = new Date(right.created_at || 0).getTime();
+      return leftTime - rightTime;
+    });
+
+    const match = sortedResponses.find((response) =>
+      response.question?.toLowerCase().includes('enter your patient id') ||
+      response.question?.toLowerCase().includes('patient id')
+    );
+
+    return match?.answer || null;
+  };
+
+  useEffect(() => {
+    const fetchHospitalPatients = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Please log in to view hospital patients.');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+        const sessionsResponse = await fetch(`${apiUrl}/api/v1/doctor/sessions`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!sessionsResponse.ok) {
+          const errorData = await sessionsResponse.json().catch(() => ({}));
+          throw new Error(errorData.detail || 'Failed to fetch hospital patients');
+        }
+
+        const sessionList = await sessionsResponse.json();
+        const enrichedSessions = await Promise.all(
+          sessionList.map(async (session) => {
+            const detailResponse = await fetch(`${apiUrl}/api/v1/doctor/sessions/${session.id}`, {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            });
+
+            if (!detailResponse.ok) {
+              return {
+                ...session,
+                patient_id: null,
+                responses: [],
+              };
+            }
+
+            const detail = await detailResponse.json();
+            return {
+              ...detail,
+              patient_id: extractPatientId(detail.responses),
+            };
+          })
+        );
+
+        setSessions(enrichedSessions.filter((session) => session.patient_id));
+      } catch (err) {
+        setError(err.message || 'An error occurred while loading patients');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHospitalPatients();
+  }, []);
 
   return (
     <Layout userRole="staff" handleLogout={handleLogout} maxWidth="1000px" padding="20px">
@@ -29,41 +107,61 @@ const HospitalPatientsPage = () => {
           </button>
         </div>
 
-        <div style={tableContainerStyle}>
-          <table style={tableStyle}>
-            <thead>
-              <tr style={headerRowStyleTable}>
-                <th style={thStyle}>Patient ID</th>
-                <th style={thStyle}>Name</th>
-                <th style={thStyle}>Age</th>
-                <th style={thStyle}>Last Visit</th>
-                <th style={thStyle}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {patients.map((patient) => (
-                <tr key={patient.id} style={rowStyle}>
-                  <td style={tdStyle}>{patient.id}</td>
-                  <td style={tdStyle}>{patient.name}</td>
-                  <td style={tdStyle}>{patient.age}</td>
-                  <td style={tdStyle}>{patient.lastVisit}</td>
-                  <td style={{ ...tdStyle, color: statusColorMap[patient.status] || '#333' }}>
-                    {patient.status}
-                  </td>
+        {loading && <p>Loading hospital patients...</p>}
+        {error && <p style={{ color: 'red', marginTop: 0 }}>{error}</p>}
+
+        {!loading && !error && (
+          <div style={tableContainerStyle}>
+            <table style={tableStyle}>
+              <thead>
+                <tr style={headerRowStyleTable}>
+                  <th style={thStyle}>Patient ID</th>
+                  <th style={thStyle}>Session ID</th>
+                  <th style={thStyle}>Consent Date</th>
+                  <th style={thStyle}>Consent Image</th>
+                  <th style={thStyle}>Responses</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {sessions.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" style={tdStyle}>No patient sessions found.</td>
+                  </tr>
+                ) : (
+                  sessions.map((session) => (
+                    <tr key={session.id} style={rowStyle}>
+                      <td style={tdStyle}>
+                        {session.patient_id ? (
+                          <Link to={`/questionnaire/${session.patient_id}`} style={{ color: '#8B008B', textDecoration: 'none' }}>
+                            {session.patient_id}
+                          </Link>
+                        ) : (
+                          'Not provided'
+                        )}
+                      </td>
+                      <td style={tdStyle}>{session.id}</td>
+                      <td style={tdStyle}>{session.consent_timestamp ? new Date(session.consent_timestamp).toLocaleString() : 'N/A'}</td>
+                      <td style={tdStyle}>
+                        {session.consent_scanned_url ? (
+                          <img
+                            src={convertGcsToHttp(session.consent_scanned_url)}
+                            alt="Consent"
+                            style={{ width: '72px', height: '72px', objectFit: 'cover', borderRadius: '6px', cursor: 'pointer' }}
+                            onClick={() => window.open(convertGcsToHttp(session.consent_scanned_url), '_blank')}
+                          />
+                        ) : 'No Image'}
+                      </td>
+                      <td style={tdStyle}>{session.responses?.length || 0}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </Layout>
   );
-};
-
-const statusColorMap = {
-  'Pending Review': '#8B008B',
-  'In Progress': '#b85c00',
-  'Completed': '#1b6b3a'
 };
 
 const contentStyle = {

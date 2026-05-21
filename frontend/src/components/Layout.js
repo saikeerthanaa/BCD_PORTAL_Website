@@ -1,5 +1,6 @@
 import React from 'react';
 import tanuhLogo from '../assets/tanuh.png';
+import moeLogo from '../assets/MoE_Black.png';
 import iiscLogo from '../assets/IISc_logo.png';
 
 const Layout = ({ children, userRole, handleLogout, maxWidth = '1200px', padding = '20px' }) => {
@@ -10,7 +11,10 @@ const Layout = ({ children, userRole, handleLogout, maxWidth = '1200px', padding
           ...logoContainerStyle,
           maxWidth: maxWidth
         }}>
-          <img src={tanuhLogo} alt="Tanuh Logo" style={logoStyle} />
+          <div style={brandGroupStyle}>
+            <img src={tanuhLogo} alt="Tanuh Logo" style={logoStyle} />
+            <img src={moeLogo} alt="MoE Logo" style={moeLogoStyle} />
+          </div>
           <h1 style={titleStyle}>AI enabled Breast Cancer Screening Tool</h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
             <button 
@@ -63,12 +67,25 @@ const logoContainerStyle = {
   maxWidth: '980px',
   margin: '0 auto',
   width: '100%',
-  gap: '20px'
+  gap: '16px'
+};
+
+const brandGroupStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: '12px',
+  flexShrink: 0
 };
 
 const logoStyle = {
   height: '64px',
   width: '64px',
+  objectFit: 'contain'
+};
+
+const moeLogoStyle = {
+  height: '52px',
+  width: 'auto',
   objectFit: 'contain'
 };
 

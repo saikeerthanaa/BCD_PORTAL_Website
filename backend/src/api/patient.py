@@ -87,6 +87,35 @@ def get_questions(lang: str = "en", db: Session = Depends(get_db)):
     
     return response
 
+@router.get("/sessions/by-patient-id/{patient_id}", response_model=PatientSessionDetail)
+def get_patient_session_by_patient_id(
+    patient_id: str,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    hospital_id = current_user.get("hospital_id")
+    if not hospital_id:
+        raise HTTPException(status_code=400, detail="User hospital ID not found")
+
+    patient_id_question = db.query(PatientResponse).filter(
+        PatientResponse.hospital_id == hospital_id,
+        PatientResponse.question.ilike("%patient id%"),
+        PatientResponse.answer == patient_id,
+    ).order_by(PatientResponse.created_at.asc()).first()
+
+    if not patient_id_question:
+        raise HTTPException(status_code=404, detail="Patient ID not found")
+
+    session = db.query(PatientSession).filter(
+        PatientSession.id == patient_id_question.session_id,
+        PatientSession.hospital_id == hospital_id
+    ).first()
+
+    if not session:
+        raise HTTPException(status_code=404, detail="Patient session not found")
+
+    return session
+
 @router.post("/consent")
 async def upload_consent(
     file: UploadFile = File(...),

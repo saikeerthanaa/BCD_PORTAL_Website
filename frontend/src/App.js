@@ -10,6 +10,9 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import tanuhLogo from './assets/tanuh.png';
 import iiscLogo from './assets/IISc_logo.png';
+import MammogramUploadPage from './pages/MammogramUploadPage';
+import QuestionnairePage from './pages/QuestionnairePage';
+import AssessmentsPage from './pages/AssessmentsPage';
 
 function App() {
   const [hoveredPortal, setHoveredPortal] = useState(null);
@@ -61,6 +64,9 @@ function App() {
           <Route path="/doctor" element={<DoctorPage />} />
           <Route path="/staff" element={<StaffPage />} />
           <Route path="/hospital/patients" element={<HospitalPatientsPage />} />
+          <Route path="/mammogram-upload" element={<MammogramUploadPage />} />
+          <Route path="/questionnaire/:patientId" element={<QuestionnairePage />} />
+          <Route path="/assessments" element={<AssessmentsPage />} />
         </Routes>
         <Footer />
         <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />

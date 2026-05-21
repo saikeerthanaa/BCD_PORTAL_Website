@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import './Questionnaire.css';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import './Questionnaire.css';
 import LanguageSwitcher from './LanguageSwitcher';
 
-function Questionnaire({ onSubmit, isSubmitting }) {
+function Questionnaire({ patientData, responses = [], onSubmit, isSubmitting }) {
   const { t, i18n } = useTranslation('questionnaire');
+  const navigate = useNavigate();
   
-  // State for form data (localized)
-  const [formData, setFormData] = useState({});
-  // State for form data (always English for logic/backend)
-  const [formDataEn, setFormDataEn] = useState({});
+  const [formData, setFormData] = useState(patientData?.answers || {});
+  const [formDataEn, setFormDataEn] = useState(patientData?.answers || {});
   const [validationErrors, setValidationErrors] = useState([]);
   const [q27VideoConfirmed, setQ27VideoConfirmed] = useState(false);
   const [showQ27VideoPrompt, setShowQ27VideoPrompt] = useState(false);
@@ -17,23 +17,25 @@ function Questionnaire({ onSubmit, isSubmitting }) {
   const formStructure = t('formStructure', { returnObjects: true });
   const questions = t('questions', { returnObjects: true });
 
-  // Get English version for logic
   const tEn = i18n.getFixedT('en', 'questionnaire');
   const questionsEn = tEn('questions', { returnObjects: true });
 
   useEffect(() => {
-    // Initialize default values if any
     const defaults = t('ui.defaults', { returnObjects: true });
-    if (defaults.q45) {
-      setFormData(prev => ({ ...prev, Q45: defaults.q45 }));
-      setFormDataEn(prev => ({ ...prev, Q45: tEn('ui.defaults.q45') }));
+    const initialFormData = { ...(patientData?.answers || {}) };
+    const initialFormDataEn = { ...(patientData?.answers || {}) };
+
+    if (defaults.q45 && !initialFormData.Q45) {
+      initialFormData.Q45 = defaults.q45;
+      initialFormDataEn.Q45 = tEn('ui.defaults.q45');
     }
-  }, [t, tEn]);
+    setFormData(initialFormData);
+    setFormDataEn(initialFormDataEn);
+  }, [t, tEn, patientData]);
 
   const handleInputChange = (key, value, type) => {
     setFormData(prev => ({ ...prev, [key]: value }));
     
-    // Convert value to English for formDataEn if it's a choice-based input
     let valueEn = value;
     if (type === 'radio' || type === 'select') {
       const questionData = questions[key];
@@ -86,35 +88,8 @@ function Questionnaire({ onSubmit, isSubmitting }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (validate()) {
-      // Map formDataEn to a list of {question, answer}
-      const responses = [];
-      const extractResponses = (qs) => {
-        qs.forEach(qConfig => {
-          const { key, subQuestions, condition } = qConfig;
-          const questionDataEn = questionsEn[key];
-          
-          if (formDataEn[key] !== undefined) {
-             // Only include if it was shown (condition met or no condition)
-             const showSub = subQuestions && condition && formDataEn[condition.key] === condition.value;
-             
-             responses.push({
-               question: questionDataEn.question,
-               answer: String(formDataEn[key])
-             });
-
-             if (showSub) {
-               extractResponses(subQuestions);
-             }
-          }
-        });
-      };
-
-      formStructure.forEach(section => extractResponses(section.questions));
-      onSubmit(responses);
-    } else {
-      alert(t('ui.errors.validationAlert'));
-    }
+    // Navigate to the mammogram upload page
+    navigate('/mammogram-upload');
   };
 
   const renderInput = (qConfig) => {
@@ -249,6 +224,11 @@ function Questionnaire({ onSubmit, isSubmitting }) {
 
         <div className="form-header">
           <h1>{t('ui.header.title')}</h1>
+          {patientData?.patient_id && (
+            <p className="patient-id-display">
+              <strong>Patient ID:</strong> {patientData.patient_id}
+            </p>
+          )}
           <p className="instructions">{t('ui.header.instructions')}</p>
           <p className="mandatory-note">
             {t('ui.header.mandatoryPre')}
@@ -256,6 +236,28 @@ function Questionnaire({ onSubmit, isSubmitting }) {
             {t('ui.header.mandatoryPost')}
           </p>
         </div>
+
+        {responses && responses.length > 0 && (
+          <div className="response-summary" style={responseSummaryStyle}>
+            <h2 style={{ marginTop: 0 }}>Mapped Questionnaire Responses</h2>
+            <table style={responseTableStyle}>
+              <thead>
+                <tr style={responseHeaderRowStyle}>
+                  <th style={responseThStyle}>Question</th>
+                  <th style={responseThStyle}>Answer</th>
+                </tr>
+              </thead>
+              <tbody>
+                {responses.map((response) => (
+                  <tr key={response.id} style={responseRowStyle}>
+                    <td style={responseTdStyle}>{response.question}</td>
+                    <td style={responseTdStyle}>{response.answer}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {formStructure.map((section, idx) => (
           <div key={idx} className="form-section">
@@ -267,15 +269,48 @@ function Questionnaire({ onSubmit, isSubmitting }) {
         <div className="submit-section">
           <button 
             type="submit" 
-            className={`submit-button ${isSubmitting ? 'loading' : ''}`}
-            disabled={isSubmitting}
+            className={`submit-button`}
           >
-            {isSubmitting ? t('ui.submitButton.loading') : t('ui.submitButton.default')}
+            {t('Upload Mammogram')}
           </button>
         </div>
       </form>
     </div>
   );
 }
+
+const responseSummaryStyle = {
+  marginBottom: '24px',
+  padding: '16px',
+  borderRadius: '8px',
+  backgroundColor: '#fff',
+  border: '1px solid #e6d3d8'
+};
+
+const responseTableStyle = {
+  width: '100%',
+  borderCollapse: 'collapse'
+};
+
+const responseHeaderRowStyle = {
+  backgroundColor: '#f8f9fa',
+  borderBottom: '2px solid #dee2e6'
+};
+
+const responseThStyle = {
+  padding: '10px',
+  textAlign: 'left',
+  fontWeight: 600,
+  color: '#495057'
+};
+
+const responseRowStyle = {
+  borderBottom: '1px solid #dee2e6'
+};
+
+const responseTdStyle = {
+  padding: '10px',
+  verticalAlign: 'top'
+};
 
 export default Questionnaire;

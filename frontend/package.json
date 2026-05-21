@@ -7,8 +7,8 @@
     "test": "tests"
   },
   "scripts": {
-    "prestart": "cp ../.env .env 2>/dev/null || true",
-    "prebuild": "cp ../.env .env 2>/dev/null || true",
+    "prestart": "node scripts/copy-env.js",
+    "prebuild": "node scripts/copy-env.js",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",

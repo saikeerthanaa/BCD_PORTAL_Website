@@ -80,20 +80,25 @@ uvicorn backend.src.main:app --host 0.0.0.0 --port 8000 --reload
 
 ### 2. Terminal 2: Run the Frontend (React)
 
-Open a second terminal at the root of the repository, navigate into the frontend folder, install dependencies, and launch the React development server.
+Open a second terminal at the root of the repository, navigate into the frontend folder, perform a dependency clean-up, and launch the React development server.
 
-> [!NOTE]
-> We have added a global package override for **`ajv`** and **`ajv-keywords`** directly inside `frontend/package.json`. This guarantees npm resolves compatible transitive dependencies under all Node versions (especially Node 20/22+) and prevents the common React 19/Webpack `Cannot find module 'ajv/dist/compile/codegen'` error.
+> [!IMPORTANT]
+> **Why this happens:** If you previously ran a standard `npm install` under Node 20+, your local `node_modules` and `package-lock.json` became corrupted with conflicting transitive `ajv` versions.
+> **How we fixed it:** We have pinned `ajv@^8.12.0` and `ajv-keywords@^5.1.0` directly inside `dependencies`, `overrides` (for npm), and `resolutions` (for Yarn) inside `frontend/package.json`. This ensures absolute compatibility across all environments.
+> **Action Required:** You **MUST** delete your existing local `node_modules` and `package-lock.json` once before reinstalling to let the new configuration take effect.
 
 #### **PowerShell (Windows Default)**
 ```powershell
 # 1. Navigate to the frontend directory
 cd bcd_portal_copy/frontend
 
-# 2. Install dependencies (resolving peer dependency flags for React 19)
+# 2. Delete the corrupted local modules and lockfile (required once to clear the cache)
+Remove-Item -Recurse -Force node_modules, package-lock.json -ErrorAction SilentlyContinue
+
+# 3. Install compatible dependencies
 npm install --legacy-peer-deps
 
-# 3. Point it to the backend and start the dev server on port 3005
+# 4. Point it to the backend and start the dev server on port 3005
 $env:REACT_APP_API_URL="http://localhost:8000"
 $env:PORT=3005
 npm start
@@ -102,14 +107,23 @@ npm start
 #### **Git Bash / Linux / macOS**
 ```bash
 cd bcd_portal_copy/frontend
+# Delete the corrupted local modules and lockfile once
+rm -rf node_modules package-lock.json
+# Install compatible dependencies
 npm install --legacy-peer-deps
+# Start the dev server
 REACT_APP_API_URL=http://localhost:8000 PORT=3005 npm start
 ```
 
 #### **Command Prompt (cmd)**
 ```cmd
 cd bcd_portal_copy/frontend
+:: Delete the corrupted local modules and lockfile once
+rmdir /s /q node_modules 2>nul
+del /f /q package-lock.json 2>nul
+:: Install compatible dependencies
 npm install --legacy-peer-deps
+:: Set environment variables and start
 set REACT_APP_API_URL=http://localhost:8000
 set PORT=3005
 npm start

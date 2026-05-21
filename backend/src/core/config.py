@@ -11,9 +11,15 @@ class Settings:
     MYSQL_PASSWORD: str = os.getenv("MYSQL_PASSWORD")
     MYSQL_HOST: str = os.getenv("MYSQL_HOST")
     MYSQL_PORT: str = os.getenv("MYSQL_PORT", 3306)
-    MYSQL_DB: str = os.getenv("MYSQL_DB")
+    MYSQL_DB: str = os.getenv("MYSQL_DB", "bcd_application2")
     # DB URL used by SQLAlchemy. Keep as-is for normal connections.
     DATABASE_URL: str = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DB}"
+
+    # Google Cloud SQL Service Account IAM settings
+    USE_CLOUD_SQL: bool = os.getenv("USE_CLOUD_SQL", "true").lower() == "true"
+    INSTANCE_CONN_NAME: str = os.getenv("INSTANCE_CONN_NAME", "bcd-prototypes:asia-south1:tanuh-bcd-questionnaire-dev")
+    SA_KEY_FILE: str = os.getenv("SA_KEY_FILE", os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "service-account.json"))
+    SA_DB_USER: str = os.getenv("SA_DB_USER", "tanuh-bcd-portal")
 
     # Optional SSL client certificate files (absolute paths). If provided,
     # the code will pass them to the DB driver so the app connects with mTLS.

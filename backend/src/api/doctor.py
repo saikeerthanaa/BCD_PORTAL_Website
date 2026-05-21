@@ -25,7 +25,7 @@ def get_patient_sessions(
 
 @router.get("/sessions/{session_id}", response_model=PatientSessionDetail)
 def get_patient_session_detail(
-    session_id: int,
+    session_id: str,
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):

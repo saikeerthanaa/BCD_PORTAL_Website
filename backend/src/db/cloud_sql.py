@@ -1,49 +1,43 @@
-"""Google Cloud SQL connector helper for MySQL (PyMySQL).
-
-This module provides a simple `getconn()` for direct connections and
-`get_sqlalchemy_engine()` for SQLAlchemy integration. It reads configuration
-from environment variables but provides sensible defaults matching the
-snippet you supplied.
-"""
+"""Google Cloud SQL connector helper for MySQL (PyMySQL) using Service Account IAM Auth."""
 import os
 from google.cloud.sql.connector import Connector
+from google.oauth2 import service_account
 import pymysql
 from sqlalchemy import create_engine
+from ..core.config import settings
 
-# Optional: point to service account JSON (if not already set)
-if not os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
-    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = r"C:\Users\tange\Desktop\check database\bcd-prototypes-7fc3307eb348.json"
+_connector = None
 
-# Instance and DB credentials (can be overridden via env vars)
-INSTANCE_CONNECTION_NAME = os.getenv(
-    "CLOUD_SQL_INSTANCE",
-    "bcd-prototypes:asia-south1:tanuh-bcd-questionnaire-dev",
-)
-DB_USER = os.getenv("CLOUD_SQL_DB_USER", "tanuh_website_builder")
-DB_PASS = os.getenv("CLOUD_SQL_DB_PASS", "Tanuh12345!")
-DB_NAME = os.getenv("CLOUD_SQL_DB_NAME", "bcd_application2")
-
-_connector = Connector()
+def get_connector():
+    global _connector
+    if _connector is None:
+        if not os.path.exists(settings.SA_KEY_FILE):
+            raise FileNotFoundError(
+                f"Google Cloud SQL Service Account key file not found at: {settings.SA_KEY_FILE}"
+            )
+        creds = service_account.Credentials.from_service_account_file(
+            settings.SA_KEY_FILE,
+            scopes=["https://www.googleapis.com/auth/cloud-platform"],
+        )
+        _connector = Connector(credentials=creds)
+    return _connector
 
 
 def getconn():
     """Return a new PEP-249 compatible connection using the Connector."""
-    conn = _connector.connect(
-        INSTANCE_CONNECTION_NAME,
+    connector = get_connector()
+    conn = connector.connect(
+        settings.INSTANCE_CONN_NAME,
         "pymysql",
-        user=DB_USER,
-        password=DB_PASS,
-        db=DB_NAME,
+        user=settings.SA_DB_USER,
+        db=settings.MYSQL_DB,
+        enable_iam_auth=True,
     )
     return conn
 
 
 def get_sqlalchemy_engine(**engine_kwargs):
-    """Create a SQLAlchemy Engine that uses the Cloud SQL connector as creator.
-
-    Usage:
-        engine = get_sqlalchemy_engine(pool_size=5, max_overflow=10)
-    """
+    """Create a SQLAlchemy Engine that uses the Cloud SQL connector as creator."""
     return create_engine(
         "mysql+pymysql://",
         creator=getconn,
@@ -67,10 +61,12 @@ def test_connection():
 
 def close_connector():
     try:
-        _connector.close()
+        if _connector:
+            _connector.close()
     except Exception:
         pass
 
 
 if __name__ == "__main__":
     test_connection()
+

@@ -208,7 +208,7 @@ async def submit_questionnaire(
 
 @router.post("/assessment", response_model=DoctorAssessmentResponse)
 async def create_doctor_assessment(
-    patient_session_id: int = Form(...),
+    patient_session_id: str = Form(...),
     questionnaire_feedback: Optional[str] = Form(None),
     is_questionnaire_correct: bool = Form(False),
     mammo_birads: Optional[str] = Form(None),

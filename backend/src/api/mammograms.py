@@ -38,7 +38,7 @@ def upload_to_gcs(file: UploadFile, file_name: str):
 
 @router.post("/upload")
 async def upload_mammograms(
-    patient_id: int = Form(...),
+    patient_id: str = Form(...),
     files: List[UploadFile] = File(...),
     db: Session = Depends(get_db)
 ):

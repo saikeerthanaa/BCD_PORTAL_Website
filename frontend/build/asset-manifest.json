@@ -1,15 +1,16 @@
 {
   "files": {
-    "main.css": "/static/css/main.9ac4494c.css",
-    "main.js": "/static/js/main.ddd0e2f6.js",
+    "main.css": "/static/css/main.7f0b586a.css",
+    "main.js": "/static/js/main.ef7b6db9.js",
     "static/media/IISc_logo.png": "/static/media/IISc_logo.3623b9485abc3f1f1b62.png",
+    "static/media/MoE_Black.png": "/static/media/MoE_Black.be1945b6a839a5fca7d6.png",
     "static/media/tanuh.png": "/static/media/tanuh.bb68db0353fc8818119b.png",
     "index.html": "/index.html",
-    "main.9ac4494c.css.map": "/static/css/main.9ac4494c.css.map",
-    "main.ddd0e2f6.js.map": "/static/js/main.ddd0e2f6.js.map"
+    "main.7f0b586a.css.map": "/static/css/main.7f0b586a.css.map",
+    "main.ef7b6db9.js.map": "/static/js/main.ef7b6db9.js.map"
   },
   "entrypoints": [
-    "static/css/main.9ac4494c.css",
-    "static/js/main.ddd0e2f6.js"
+    "static/css/main.7f0b586a.css",
+    "static/js/main.ef7b6db9.js"
   ]
 }

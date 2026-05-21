@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 
@@ -10,7 +10,30 @@ const StaffPage = () => {
     email: '',
     password: ''
   });
+  const [hospitals, setHospitals] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loginLoading, setLoginLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+
+  useEffect(() => {
+    const fetchHospitals = async () => {
+      try {
+        const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/auth/hospitals`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch hospitals');
+        }
+        const data = await response.json();
+        setHospitals(data);
+      } catch (err) {
+        console.error('Error fetching hospitals:', err);
+        setMessage({ type: 'error', text: 'Failed to load hospitals list.' });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHospitals();
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -24,7 +47,7 @@ const StaffPage = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage({ type: '', text: '' });
 
@@ -33,8 +56,39 @@ const StaffPage = () => {
       return;
     }
 
-    setMessage({ type: 'success', text: 'Login details captured.' });
-    navigate('/hospital/patients');
+    setLoginLoading(true);
+    try {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/v1/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          hospital_name: formData.hospitalName,
+          role: 'Staff',
+          email: formData.email,
+          password: formData.password
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        localStorage.setItem('token', data.access_token);
+        localStorage.setItem('role', 'staff');
+        localStorage.setItem('hospitalName', formData.hospitalName);
+        setMessage({ type: 'success', text: 'Login successful!' });
+        navigate('/hospital/patients');
+      } else {
+        const errorMsg = data.detail || 'Incorrect email or password';
+        setMessage({ type: 'error', text: errorMsg });
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setMessage({ type: 'error', text: 'An error occurred during login. Please try again.' });
+    } finally {
+      setLoginLoading(false);
+    }
   };
 
   return (
@@ -44,14 +98,21 @@ const StaffPage = () => {
         <form onSubmit={handleSubmit} style={formStyle}>
           <div style={formGroupStyle}>
             <label style={labelStyle} htmlFor="hospitalName">Hospital Name</label>
-            <input
+            <select
               id="hospitalName"
               name="hospitalName"
-              type="text"
               value={formData.hospitalName}
               onChange={handleChange}
               style={inputStyle}
-            />
+              disabled={loading}
+            >
+              <option value="">{loading ? 'Loading hospitals...' : 'Select Hospital'}</option>
+              {hospitals.map((hospital) => (
+                <option key={hospital.id} value={hospital.name}>
+                  {hospital.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div style={formGroupStyle}>
@@ -104,7 +165,17 @@ const StaffPage = () => {
             </div>
           )}
 
-          <button type="submit" style={submitButtonStyle}>Submit</button>
+          <button
+            type="submit"
+            style={{
+              ...submitButtonStyle,
+              backgroundColor: loginLoading ? '#ccc' : '#8B008B',
+              cursor: loginLoading ? 'not-allowed' : 'pointer'
+            }}
+            disabled={loginLoading}
+          >
+            {loginLoading ? 'Logging in...' : 'Submit'}
+          </button>
         </form>
       </div>
     </Layout>

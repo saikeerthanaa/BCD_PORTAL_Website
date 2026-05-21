@@ -5,6 +5,7 @@ import PatientPage from './pages/PatientPage';
 import DoctorPage from './pages/DoctorPage';
 import StaffPage from './pages/StaffPage';
 import HospitalPatientsPage from './pages/HospitalPatientsPage';
+import LoginPage from './pages/LoginPage';
 import Footer from './components/Footer';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -12,7 +13,7 @@ import tanuhLogo from './assets/tanuh.png';
 import iiscLogo from './assets/IISc_logo.png';
 import MammogramUploadPage from './pages/MammogramUploadPage';
 import QuestionnairePage from './pages/QuestionnairePage';
-import AssessmentsPage from './pages/AssessmentsPage';
+import DoctorAssessment from './pages/DoctorAssessment';
 
 function App() {
   const [hoveredPortal, setHoveredPortal] = useState(null);
@@ -59,6 +60,7 @@ function App() {
               </div>
             }
           />
+          <Route path="/login" element={<LoginPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/patient" element={<PatientPage />} />
           <Route path="/doctor" element={<DoctorPage />} />
@@ -66,7 +68,7 @@ function App() {
           <Route path="/hospital/patients" element={<HospitalPatientsPage />} />
           <Route path="/mammogram-upload" element={<MammogramUploadPage />} />
           <Route path="/questionnaire/:patientId" element={<QuestionnairePage />} />
-          <Route path="/assessments" element={<AssessmentsPage />} />
+          <Route path="/doctor-assessment" element={<DoctorAssessment />} />
         </Routes>
         <Footer />
         <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} />

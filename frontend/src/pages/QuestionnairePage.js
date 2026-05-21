@@ -77,7 +77,11 @@ const QuestionnairePage = () => {
               )}
             </div>
             <div style={uploadPanelStyle}>
-              <Link to="/mammogram-upload" style={uploadLinkStyle}>
+              <Link 
+                to="/mammogram-upload" 
+                state={{ sessionId: session?.id, patientId }} 
+                style={uploadLinkStyle}
+              >
                 Upload Mammogram
               </Link>
             </div>

@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import './MammogramUploadPage.css';
 import Layout from '../components/Layout';
 
 const MammogramUploadPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { sessionId, patientId } = location.state || {};
   const [uploadedFiles, setUploadedFiles] = useState({});
 
   const mammogramViews = [
@@ -45,7 +47,7 @@ const MammogramUploadPage = () => {
   };
 
   const handleNavigateToAssessments = () => {
-    navigate('/assessments');
+    navigate('/doctor-assessment', { state: { sessionId, patientId } });
   };
 
   const handleLogout = () => {
